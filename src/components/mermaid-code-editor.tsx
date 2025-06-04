@@ -3,13 +3,12 @@
 import { useState, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { generateMermaidDiagram } from '@/ai/flows/mermaid-diagram-generation';
 import { mermaidSyntaxRepair } from '@/ai/flows/mermaid-syntax-repair';
-import { Wand2, ShieldCheck, Lightbulb, Loader2, Info } from 'lucide-react';
+import { Wand2, ShieldCheck, Loader2, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,

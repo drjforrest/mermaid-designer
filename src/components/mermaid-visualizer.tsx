@@ -137,8 +137,8 @@ export function MermaidVisualizer({
 
   const handleExportPNG = () => {
     if (svgContent && mermaidDivRef.current?.firstChild) {
-      const svgElement = mermaidDivRef.current.firstChild as SVGElement;
-      const {width: svgWidth, height: svgHeight} = svgElement.getBBox && svgElement.getBBox().width && svgElement.getBBox().height ? svgElement.getBBox() : { width: svgElement.clientWidth, height: svgElement.clientHeight };
+      const svgElement = mermaidDivRef.current.firstChild as SVGSVGElement;
+      const {width: svgWidth, height: svgHeight} = svgElement.getBBox ? svgElement.getBBox() : { width: svgElement.clientWidth, height: svgElement.clientHeight };
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
