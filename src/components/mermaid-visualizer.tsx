@@ -6,7 +6,7 @@ import mermaid from 'mermaid';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Download, ImageDown, Save, FolderOpen, Loader2 } from 'lucide-react';
+import { Download, ImageDown, Save, FolderOpen, Loader2, Settings } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -15,6 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface MermaidVisualizerProps {
   mermaidCode: string;
@@ -22,12 +25,34 @@ interface MermaidVisualizerProps {
   onLoadDiagram: () => string | null;
   diagramTheme: string;
   onDiagramThemeChange: (theme: string) => void;
+  diagramFontFamily: string;
+  onDiagramFontFamilyChange: (font: string) => void;
+  flowchartUseMaxWidth: boolean;
+  onFlowchartUseMaxWidthChange: (useMaxWidth: boolean) => void;
 }
 
-// Helper to ensure unique IDs for Mermaid rendering
 let mermaidRenderIdCounter = 0;
 
-export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram, diagramTheme, onDiagramThemeChange }: MermaidVisualizerProps) {
+const availableFonts = [
+  { value: 'Inter', label: 'Inter (App Default)' },
+  { value: 'Source Code Pro', label: 'Source Code Pro (Code Font)' },
+  { value: 'Arial, Helvetica, sans-serif', label: 'Arial / Helvetica' },
+  { value: 'Verdana, Geneva, sans-serif', label: 'Verdana / Geneva' },
+  { value: '"Times New Roman", Times, serif', label: 'Times New Roman' },
+  { value: 'monospace', label: 'Monospace' },
+];
+
+export function MermaidVisualizer({ 
+  mermaidCode, 
+  onSaveDiagram, 
+  onLoadDiagram, 
+  diagramTheme, 
+  onDiagramThemeChange,
+  diagramFontFamily,
+  onDiagramFontFamilyChange,
+  flowchartUseMaxWidth,
+  onFlowchartUseMaxWidthChange,
+}: MermaidVisualizerProps) {
   const mermaidDivRef = useRef<HTMLDivElement>(null);
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
@@ -39,21 +64,27 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram, d
       startOnLoad: false,
       theme: diagramTheme,
       securityLevel: 'loose', 
-      fontFamily: '"Inter", sans-serif',
+      fontFamily: diagramFontFamily,
+      flowchart: {
+        useMaxWidth: flowchartUseMaxWidth,
+      }
     });
-  }, [diagramTheme]);
+  }, [diagramTheme, diagramFontFamily, flowchartUseMaxWidth]);
 
   useEffect(() => {
     if (mermaidCode && mermaidDivRef.current) {
       setIsRendering(true);
       setRenderError(null);
-      mermaidDivRef.current.innerHTML = ''; // Clear previous diagram
+      // It's important to clear previous content before rendering.
+      mermaidDivRef.current.innerHTML = ''; 
       
       const renderMermaid = async () => {
         try {
           const uniqueId = `mermaid-diagram-${mermaidRenderIdCounter++}`;
+          // Ensure the div is clean for the new render attempt
+          if (mermaidDivRef.current) mermaidDivRef.current.innerHTML = '';
           const {svg} = await mermaid.render(uniqueId, mermaidCode);
-          if (mermaidDivRef.current) {
+          if (mermaidDivRef.current) { // Check ref again in case component unmounted
             mermaidDivRef.current.innerHTML = svg;
             setSvgContent(svg);
           }
@@ -75,7 +106,8 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram, d
         }
       };
       
-      const timer = setTimeout(renderMermaid, 100); // Small delay
+      // Using a timeout can sometimes help with race conditions or rapid updates.
+      const timer = setTimeout(renderMermaid, 50); 
       return () => clearTimeout(timer);
 
     } else if (mermaidDivRef.current) {
@@ -84,7 +116,7 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram, d
       setRenderError(null);
       setIsRendering(false);
     }
-  }, [mermaidCode, diagramTheme]); // Re-render if theme changes
+  }, [mermaidCode, diagramTheme, diagramFontFamily, flowchartUseMaxWidth]); // Re-render if any of these change
 
   const handleExportSVG = () => {
     if (svgContent) {
@@ -125,7 +157,13 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram, d
       canvas.height = effectiveHeight * scale;
       
       img.onload = () => {
-        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--background-rgb') || 'white';
+        // Use the application's current background color for the canvas
+        let bgColor = 'white';
+        if (typeof window !== 'undefined') {
+            const bodyStyles = getComputedStyle(document.body);
+            bgColor = bodyStyles.backgroundColor || 'white';
+        }
+        ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.scale(scale, scale);
         ctx.drawImage(img, 0, 0, effectiveWidth, effectiveHeight);
@@ -143,7 +181,9 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram, d
       img.onerror = (e) => {
         console.error("Error loading SVG into image for PNG export", e);
         toast({ variant: "destructive", title: "Export Error", description: "Could not load SVG for PNG export." });
-        URL.revokeObjectURL(img.src); 
+        if (img.src.startsWith('blob:')) { // Only revoke if it's a blob URL we created
+           URL.revokeObjectURL(img.src); 
+        }
       };
       
       const svgBlob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
@@ -159,23 +199,68 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram, d
       <CardHeader className="p-4 border-b flex flex-row justify-between items-center">
         <CardTitle className="text-lg font-headline">Visualization Canvas</CardTitle>
         <div className="flex space-x-2 items-center">
-          <Select value={diagramTheme} onValueChange={onDiagramThemeChange}>
-            <SelectTrigger className="w-[120px] h-9 text-xs" aria-label="Select Diagram Theme">
-              <SelectValue placeholder="Theme" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="base">Base</SelectItem>
-              <SelectItem value="default">Default</SelectItem>
-              <SelectItem value="dark">Dark</SelectItem>
-              <SelectItem value="forest">Forest</SelectItem>
-              <SelectItem value="neutral">Neutral</SelectItem>
-            </SelectContent>
-          </Select>
+           <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm"><Settings className="mr-2 h-4 w-4" /> Options</Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Diagram Settings</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Adjust global diagram rendering options.
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="diagramTheme">Theme</Label>
+                    <Select value={diagramTheme} onValueChange={onDiagramThemeChange}>
+                      <SelectTrigger id="diagramTheme" className="col-span-2 h-8 text-xs" aria-label="Select Diagram Theme">
+                        <SelectValue placeholder="Theme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="base">Base</SelectItem>
+                        <SelectItem value="default">Default</SelectItem>
+                        <SelectItem value="dark">Dark</SelectItem>
+                        <SelectItem value="forest">Forest</SelectItem>
+                        <SelectItem value="neutral">Neutral</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="diagramFont">Font</Label>
+                    <Select value={diagramFontFamily} onValueChange={onDiagramFontFamilyChange}>
+                      <SelectTrigger id="diagramFont" className="col-span-2 h-8 text-xs" aria-label="Select Diagram Font Family">
+                        <SelectValue placeholder="Font" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableFonts.map(font => (
+                          <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="flowchartMaxWidth">Flowchart Max Width</Label>
+                     <div className="col-span-2 flex items-center justify-start">
+                        <Switch
+                            id="flowchartMaxWidth"
+                            checked={flowchartUseMaxWidth}
+                            onCheckedChange={onFlowchartUseMaxWidthChange}
+                            aria-label="Toggle flowchart use max width"
+                        />
+                     </div>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button variant="outline" size="sm" onClick={handleExportSVG} disabled={!svgContent || isRendering}>
-            <Download className="mr-2 h-4 w-4" /> Export SVG
+            <Download className="mr-2 h-4 w-4" /> SVG
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportPNG} disabled={!svgContent || isRendering}>
-            <ImageDown className="mr-2 h-4 w-4" /> Export PNG
+            <ImageDown className="mr-2 h-4 w-4" /> PNG
           </Button>
         </div>
       </CardHeader>
@@ -203,10 +288,10 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram, d
          </p>
          <div className="flex space-x-2">
             <Button variant="outline" size="sm" onClick={() => onSaveDiagram(mermaidCode)} disabled={isRendering || !mermaidCode}>
-                <Save className="mr-2 h-4 w-4" /> Save Diagram
+                <Save className="mr-2 h-4 w-4" /> Save
             </Button>
             <Button variant="outline" size="sm" onClick={onLoadDiagram} disabled={isRendering}>
-                <FolderOpen className="mr-2 h-4 w-4" /> Load Diagram
+                <FolderOpen className="mr-2 h-4 w-4" /> Load
             </Button>
          </div>
       </CardFooter>
