@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
@@ -7,17 +8,26 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { useToast } from "@/hooks/use-toast";
 import { Download, ImageDown, Save, FolderOpen, Loader2 } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface MermaidVisualizerProps {
   mermaidCode: string;
   onSaveDiagram: (code: string) => void;
   onLoadDiagram: () => string | null;
+  diagramTheme: string;
+  onDiagramThemeChange: (theme: string) => void;
 }
 
 // Helper to ensure unique IDs for Mermaid rendering
 let mermaidRenderIdCounter = 0;
 
-export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }: MermaidVisualizerProps) {
+export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram, diagramTheme, onDiagramThemeChange }: MermaidVisualizerProps) {
   const mermaidDivRef = useRef<HTMLDivElement>(null);
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
@@ -27,33 +37,21 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }:
   useEffect(() => {
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'base', // Using 'base' allows more CSS control if needed
-      // For a professional look matching the theme, consider 'neutral' or 'forest' if they fit.
-      // Or use themeVariables to align with CSS variables, e.g.:
-      // themeVariables: {
-      //   primaryColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(), // This needs to be HSL to HEX or RGB if mermaid needs that
-      //   lineColor: getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim(),
-      //   textColor: getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim(),
-      // }
-      // The above themeVariables approach is complex due to HSL format. Simpler to use a built-in theme for now.
-      // Using 'default' or 'neutral' might be good starting points. Let's stick to 'base' for now for flexibility.
-      securityLevel: 'loose', // Allow more flexibility, ensure code is from trusted source (user input)
-      fontFamily: '"Inter", sans-serif', // Match app font
+      theme: diagramTheme,
+      securityLevel: 'loose', 
+      fontFamily: '"Inter", sans-serif',
     });
-  }, []);
+  }, [diagramTheme]);
 
   useEffect(() => {
     if (mermaidCode && mermaidDivRef.current) {
       setIsRendering(true);
       setRenderError(null);
-      // Clear previous diagram explicitly
-      mermaidDivRef.current.innerHTML = '';
+      mermaidDivRef.current.innerHTML = ''; // Clear previous diagram
       
       const renderMermaid = async () => {
         try {
           const uniqueId = `mermaid-diagram-${mermaidRenderIdCounter++}`;
-          // Mermaid render can sometimes throw an error directly, or fail silently.
-          // The callback style of mermaid.render is safer.
           const {svg} = await mermaid.render(uniqueId, mermaidCode);
           if (mermaidDivRef.current) {
             mermaidDivRef.current.innerHTML = svg;
@@ -77,8 +75,7 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }:
         }
       };
       
-      // Add a small delay to allow DOM to update if mermaidCode changes rapidly
-      const timer = setTimeout(renderMermaid, 100);
+      const timer = setTimeout(renderMermaid, 100); // Small delay
       return () => clearTimeout(timer);
 
     } else if (mermaidDivRef.current) {
@@ -87,7 +84,7 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }:
       setRenderError(null);
       setIsRendering(false);
     }
-  }, [mermaidCode]);
+  }, [mermaidCode, diagramTheme]); // Re-render if theme changes
 
   const handleExportSVG = () => {
     if (svgContent) {
@@ -111,7 +108,6 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }:
       const svgElement = mermaidDivRef.current.firstChild as SVGElement;
       const {width: svgWidth, height: svgHeight} = svgElement.getBBox && svgElement.getBBox().width && svgElement.getBBox().height ? svgElement.getBBox() : { width: svgElement.clientWidth, height: svgElement.clientHeight };
 
-
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) {
@@ -120,9 +116,8 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }:
       }
 
       const img = new Image();
-      const scale = 2; // For better resolution
+      const scale = 2; 
       
-      // Fallback if getBBox is not reliable or returns 0
       const effectiveWidth = svgWidth > 0 ? svgWidth : 600;
       const effectiveHeight = svgHeight > 0 ? svgHeight : 400;
 
@@ -130,11 +125,11 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }:
       canvas.height = effectiveHeight * scale;
       
       img.onload = () => {
-        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--background-rgb') || 'white'; // Use actual background color
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--background-rgb') || 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.scale(scale, scale);
         ctx.drawImage(img, 0, 0, effectiveWidth, effectiveHeight);
-        URL.revokeObjectURL(img.src); // Clean up blob URL
+        URL.revokeObjectURL(img.src);
 
         const pngUrl = canvas.toDataURL('image/png');
         const a = document.createElement('a');
@@ -148,7 +143,7 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }:
       img.onerror = (e) => {
         console.error("Error loading SVG into image for PNG export", e);
         toast({ variant: "destructive", title: "Export Error", description: "Could not load SVG for PNG export." });
-        URL.revokeObjectURL(img.src); // Clean up blob URL
+        URL.revokeObjectURL(img.src); 
       };
       
       const svgBlob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
@@ -163,7 +158,19 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }:
     <Card className="w-full md:w-1/2 h-full flex flex-col shadow-lg rounded-lg m-2">
       <CardHeader className="p-4 border-b flex flex-row justify-between items-center">
         <CardTitle className="text-lg font-headline">Visualization Canvas</CardTitle>
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 items-center">
+          <Select value={diagramTheme} onValueChange={onDiagramThemeChange}>
+            <SelectTrigger className="w-[120px] h-9 text-xs" aria-label="Select Diagram Theme">
+              <SelectValue placeholder="Theme" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="base">Base</SelectItem>
+              <SelectItem value="default">Default</SelectItem>
+              <SelectItem value="dark">Dark</SelectItem>
+              <SelectItem value="forest">Forest</SelectItem>
+              <SelectItem value="neutral">Neutral</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={handleExportSVG} disabled={!svgContent || isRendering}>
             <Download className="mr-2 h-4 w-4" /> Export SVG
           </Button>
@@ -182,9 +189,9 @@ export function MermaidVisualizer({ mermaidCode, onSaveDiagram, onLoadDiagram }:
           )}
           <div 
             ref={mermaidDivRef} 
-            className="w-full h-full p-4 min-h-[300px] flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full" // Ensure SVG scales
+            className="w-full h-full p-4 min-h-[300px] flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full"
             aria-live="polite"
-            data-ai-hint="diagram chart" // for placeholder image if needed, though we render dynamically
+            data-ai-hint="diagram chart"
           >
             {/* Mermaid diagram will be rendered here */}
           </div>

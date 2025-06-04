@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -8,18 +9,25 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from "@/hooks/use-toast";
 
 const LOCAL_STORAGE_KEY = 'mermaidVizLabLastDiagram';
+const DIAGRAM_THEME_LOCAL_STORAGE_KEY = 'mermaidVizLabDiagramTheme';
 
 export default function Home() {
   const [mermaidCode, setMermaidCode] = useState<string>('');
+  const [diagramTheme, setDiagramTheme] = useState<string>('base'); // Default theme
   const debouncedMermaidCode = useDebounce(mermaidCode, 500); // Debounce for visualization
   const { toast } = useToast();
 
-  // Load saved diagram on initial mount
+  // Load saved diagram and theme on initial mount
   useEffect(() => {
     const savedCode = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedCode) {
       setMermaidCode(savedCode);
       toast({ title: "Diagram Loaded", description: "Restored your last saved diagram." });
+    }
+
+    const savedTheme = localStorage.getItem(DIAGRAM_THEME_LOCAL_STORAGE_KEY);
+    if (savedTheme) {
+      setDiagramTheme(savedTheme);
     }
   }, [toast]);
   
@@ -45,6 +53,12 @@ export default function Home() {
       return null;
     }
   };
+
+  const handleDiagramThemeChange = (newTheme: string) => {
+    setDiagramTheme(newTheme);
+    localStorage.setItem(DIAGRAM_THEME_LOCAL_STORAGE_KEY, newTheme);
+    toast({ title: "Diagram Theme Changed", description: `Switched to ${newTheme} theme.` });
+  };
   
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
@@ -59,6 +73,8 @@ export default function Home() {
           mermaidCode={debouncedMermaidCode}
           onSaveDiagram={handleSaveDiagram}
           onLoadDiagram={handleLoadDiagram}
+          diagramTheme={diagramTheme}
+          onDiagramThemeChange={handleDiagramThemeChange}
         />
       </main>
     </div>
