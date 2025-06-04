@@ -1,6 +1,8 @@
+
 "use client";
 
 import { Projector } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export function AppHeader() {
   return (
@@ -10,7 +12,9 @@ export function AppHeader() {
           <Projector className="h-6 w-6 mr-2 text-primary" />
           <span className="font-headline text-xl font-bold text-primary">Mermaid VizLab</span>
         </div>
-        {/* Add navigation or actions here if needed */}
+        <div className="flex flex-1 items-center justify-end space-x-4">
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
