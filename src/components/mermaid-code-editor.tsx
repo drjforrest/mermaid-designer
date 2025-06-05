@@ -89,16 +89,16 @@ export function MermaidCodeEditor({ onCodeChange, initialCode = '', mermaidCode,
   };
   
   return (
-    <Card className="w-full md:w-1/2 h-full flex flex-col shadow-lg rounded-lg m-2">
-      <CardHeader className="p-4 border-b">
-        <CardTitle className="text-lg font-headline">Mermaid Code Editor</CardTitle>
+    <Card className="w-full md:w-1/2 h-full flex flex-col shadow-md rounded-lg m-2 border-primary/20">
+      <CardHeader className="p-4 border-b border-primary/20">
+        <CardTitle className="text-lg font-headline text-primary">Mermaid Code Editor</CardTitle>
       </CardHeader>
       <CardContent className="p-4 flex-grow flex flex-col overflow-hidden">
-        <div className="flex space-x-2 mb-3">
+        <div className="flex space-x-3 mb-4">
           <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Wand2 className="mr-2 h-4 w-4" /> Generate with AI
+              <Button variant="outline" size="sm" className="border-primary/20 hover:bg-primary/5">
+                <Wand2 className="mr-2 h-4 w-4 text-primary" /> Generate with AI
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
@@ -124,12 +124,12 @@ export function MermaidCodeEditor({ onCodeChange, initialCode = '', mermaidCode,
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <Button variant="outline" size="sm" onClick={handleRepairSyntax} disabled={isRepairing}>
+          <Button variant="outline" size="sm" onClick={handleRepairSyntax} disabled={isRepairing} className="border-primary/20 hover:bg-primary/5">
             {isRepairing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
             Repair Syntax
           </Button>
           {/* Autocomplete might be complex for now, placeholder for future */}
-          {/* <Button variant="outline" size="sm" disabled>
+          {/* <Button variant="outline" size="sm" disabled className="border-primary/20 hover:bg-primary/5">
             <Lightbulb className="mr-2 h-4 w-4" /> Autocomplete
           </Button> */}
         </div>
@@ -140,17 +140,17 @@ export function MermaidCodeEditor({ onCodeChange, initialCode = '', mermaidCode,
             <AlertDescription>{repairInfo.message}</AlertDescription>
           </Alert>
         )}
-        <ScrollArea className="flex-grow rounded-md border">
+        <ScrollArea className="flex-grow rounded-md border border-primary/20">
           <Textarea
             placeholder="Enter Mermaid code here... e.g., graph TD; A-->B;"
             value={mermaidCode}
             onChange={(e) => setMermaidCode(e.target.value)}
-            className="w-full h-full min-h-[300px] resize-none p-3 font-code text-sm !border-0 !ring-0 focus-visible:!ring-0"
+            className="w-full h-full min-h-[300px] resize-none p-3 font-code text-sm !border-0 !ring-0 focus-visible:!ring-0 focus-visible:ring-primary/20"
             aria-label="Mermaid Code Input"
           />
         </ScrollArea>
       </CardContent>
-      <CardFooter className="p-4 border-t">
+      <CardFooter className="p-4 border-t border-primary/20">
          <p className="text-xs text-muted-foreground">Tip: Use AI to generate or repair your Mermaid diagrams.</p>
       </CardFooter>
     </Card>
